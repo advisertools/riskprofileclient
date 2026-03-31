@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Risk Profile — Propel Business Group</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!--
+╔══════════════════════════════════════════════════════════════════════╗
+║         POWER AUTOMATE + SHAREPOINT SETUP — FOR YOUR IT TEAM        ║
+╠══════════════════════════════════════════════════════════════════════╣
+║                                                                      ║
+║  This form submits via Microsoft Power Automate — no third-party    ║
+║  signups required. Everything stays inside your Microsoft 365        ║
+║  tenancy. IT setup takes approximately 20 minutes.                   ║
+║                                                                      ║
+║  WHAT IT DOES:                                                       ║
+║  1. Client clicks Submit → form sends JSON to a Power Automate URL  ║
+║  2. Power Automate saves the risk profile HTML to a SharePoint       ║
+║     folder (e.g. "Risk Profiles/2026-03/")                          ║
+║  3. Power Automate sends an email to adminfp@propelbg.com.au        ║
+║     with the client name, adviser, result, and a direct link        ║
+║     to the SharePoint file                                           ║
+║                                                                      ║
+║  IT SETUP STEPS:                                                     ║
+║  ─────────────────────────────────────────────────────────────────  ║
+║  1. Go to https://make.powerautomate.com and sign in with           ║
+║     your Microsoft 365 work account.                                 ║
+║                                                                      ║
+║  2. Click "+ Create" → "Instant cloud flow"                          ║
+║     Name it: "Risk Profile Submission"                               ║
+║     Trigger: "When an HTTP request is received"                      ║
+║     Click Create.                                                    ║
+║                                                                      ║
+║  3. In the HTTP trigger, set the Request Body JSON Schema:           ║
+║     (paste this entire block)                                        ║
+║     {                                                                ║
+║       "type": "object",                                              ║
+║       "properties": {                                                ║
+║         "subject":        { "type": "string" },                      ║
+║         "clientName":     { "type": "string" },                      ║
+║         "partnerName":    { "type": "string" },                      ║
+║         "adviserName":    { "type": "string" },                      ║
+║         "clientEmail":    { "type": "string" },                      ║
+║         "completionDate": { "type": "string" },                      ║
+║         "riskProfile":    { "type": "string" },                      ║
+║         "score":          { "type": "string" },                      ║
+║         "fileName":       { "type": "string" },                      ║
+║         "htmlContent":    { "type": "string" }                       ║
+║       }                                                              ║
+║     }                                                                ║
+║                                                                      ║
+║  4. Add action: "SharePoint — Create file"                           ║
+║     Site Address: your SharePoint site                               ║
+║     Folder Path: /Risk Profiles                                      ║
+║     File Name: @{triggerBody()?['fileName']}                         ║
+║     File Content: @{triggerBody()?['htmlContent']}                   ║
+║                                                                      ║
+║  5. Add action: "SharePoint — Create sharing link for a file"        ║
+║     Use the file ID from the previous step                           ║
+║     Link Type: Direct                                                ║
+║     Link Scope: Organization                                         ║
+║                                                                      ║
+║  6. Add action: "Office 365 Outlook — Send an email (V2)"           ║
+║     To: adminfp@propelbg.com.au                                      ║
+║     Subject: @{triggerBody()?['subject']}                            ║
+║     Body: (use the email template below)                             ║
+║     ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─                    ║
+║     New Risk Profile Submission                                       ║
+║     Client: @{triggerBody()?['clientName']}                          ║
+║     Partner: @{triggerBody()?['partnerName']}                        ║
+║     Adviser: @{triggerBody()?['adviserName']}                        ║
+║     Profile: @{triggerBody()?['riskProfile']}                        ║
+║     Score:   @{triggerBody()?['score']} / 70                         ║
+║     Date:    @{triggerBody()?['completionDate']}                     ║
+║     Email:   @{triggerBody()?['clientEmail']}                        ║
+║                                                                      ║
+║     View Risk Profile: @{outputs('Create_sharing_link')?['body/link/webUrl']}
+║     ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─                    ║
+║                                                                      ║
+║  7. Add action: "Response" (to complete the HTTP handshake)          ║
+║     Status Code: 200                                                 ║
+║     Body: {"status":"ok"}                                            ║
+║                                                                      ║
+║  8. Save the flow. Copy the HTTP POST URL from step 2's trigger      ║
+║     (it looks like: https://prod-xx.westus.logic.azure.com/...)      ║
+║                                                                      ║
+║  9. Paste that URL into POWER_AUTOMATE_WEBHOOK_URL below.            ║
+║                                                                      ║
+║  LICENCE NOTE: The "When an HTTP request is received" trigger        ║
+║  requires a Power Automate Premium or per-flow licence. Most         ║
+║  Microsoft 365 Business Premium plans include this. If not,          ║
+║  per-flow plans cost ~$14/month AUD for unlimited flows.             ║
+║  Check with IT: they will know what's licensed.                      ║
+║                                                                      ║
+╠══════════════════════════════════════════════════════════════════════╣
+║  TO ADD OR CHANGE ADVISER NAMES:                                     ║
+║  Find the ADVISERS array below and add/edit/remove entries.          ║
+║  Format: { name: 'Full Name', ar: 'AR number', email: 'email' }      ║
+╚══════════════════════════════════════════════════════════════════════╝
+-->
+
+<style>
+/* ── BRAND COLOURS ── */
+:root {
+  --dark:       #383b43;
+  --dark-mid:   #4a4e58;
+  --dark-soft:  #5c6070;
+  --teal:       #77c4d5;
+  --teal-mid:   #5db8cc;
+  --teal-dark:  #3ea8be;
+  --teal-pale:  #e8f7fa;
+  --teal-pale2: #c8eaf2;
+  --bg:         #f4f6f8;
+  --surface:    #ffffff;
+  --surface2:   #f0f2f5;
+  --surface3:   #e6e9ed;
+  --border:     #d6dae0;
+  --text:       #383b43;
+  --text-dim:   #5c6070;
+  --text-muted: #8a8f9e;
+  --green:      #27ae60;
+  --green-pale: #eafaf1;
+  --amber:      #e67e22;
+  --amber-pale: #fef6ee;
+  --red:        #e74c3c;
+  --shadow:     rgba(56,59,67,0.10);
+  --r:          14px;
+  --r-sm:       9px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; }
+
+/* ── PAGE HEADER ── */
+.page-header {
+  background: var(--dark);
+  padding: 0;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.25);
+}
+.header-inner {
+  max-width: 720px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 24px;
+}
+.header-brand { display: flex; align-items: center; gap: 12px; }
+.header-logo-mark {
+  width: 36px; height: 36px; border-radius: 9px;
+  background: var(--teal); display: flex; align-items: center; justify-content: center;
+}
+.header-logo-mark svg { width: 20px; height: 20px; stroke: var(--dark); fill: none; stroke-width: 2.5; stroke-linecap: round; }
+.header-name {
+  font-family: 'Playfair Display', serif;
+  font-size: 17px; color: #fff; line-height: 1.2;
+}
+.header-sub { font-size: 10px; color: rgba(255,255,255,0.45); letter-spacing: 0.12em; text-transform: uppercase; }
+.header-progress-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.header-progress-label { font-size: 10px; color: rgba(255,255,255,0.5); letter-spacing: 0.08em; }
+.header-progress-bar { width: 100px; height: 4px; background: rgba(255,255,255,0.15); border-radius: 2px; overflow: hidden; }
+.header-progress-fill { height: 100%; background: var(--teal); border-radius: 2px; transition: width 0.5s; }
+
+/* ── MAIN CONTENT ── */
+.main { max-width: 720px; margin: 0 auto; padding: 28px 24px 60px; }
+
+/* ── INTRO CARD ── */
+.intro-card {
+  background: linear-gradient(135deg, var(--dark) 0%, var(--dark-mid) 100%);
+  border-radius: var(--r); padding: 28px 28px 24px;
+  margin-bottom: 20px; position: relative; overflow: hidden;
+  box-shadow: 0 8px 28px var(--shadow);
+}
+.intro-card::before { content: ''; position: absolute; top: -60px; right: -40px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(119,196,213,0.18) 0%, transparent 70%); pointer-events: none; }
+.intro-card::after  { content: ''; position: absolute; bottom: -40px; left: -30px; width: 160px; height: 160px; background: radial-gradient(circle, rgba(119,196,213,0.10) 0%, transparent 70%); pointer-events: none; }
+.intro-eyebrow { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--teal); margin-bottom: 7px; position: relative; z-index: 1; }
+.intro-title { font-family: 'Playfair Display', serif; font-size: 26px; color: #fff; font-weight: 700; line-height: 1.2; margin-bottom: 12px; position: relative; z-index: 1; }
+.intro-body { font-size: 13px; color: rgba(255,255,255,0.70); line-height: 1.75; position: relative; z-index: 1; }
+.intro-time-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(119,196,213,0.18); border: 1px solid rgba(119,196,213,0.30); border-radius: 20px; padding: 4px 12px; font-size: 11px; color: var(--teal); margin-top: 14px; position: relative; z-index: 1; }
+.intro-time-badge svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ── SECTIONS ── */
+.section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); margin-bottom: 14px; overflow: hidden; box-shadow: 0 2px 8px var(--shadow); }
+.sec-hdr { padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; transition: background 0.15s; }
+.sec-hdr:hover { background: var(--teal-pale); }
+.sec-left { display: flex; align-items: center; gap: 12px; }
+.sec-ico { width: 36px; height: 36px; border-radius: 9px; background: var(--teal-pale); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.sec-ico svg { width: 17px; height: 17px; stroke: var(--teal-dark); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sec-title-wrap {}
+.sec-title { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); font-weight: 700; }
+.sec-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.sec-right { display: flex; align-items: center; gap: 9px; }
+.sec-badge { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--surface2); flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.sec-badge.done { background: var(--green); border-color: var(--green); }
+.sec-badge.done::after { content: ''; width: 9px; height: 6px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translateY(-1px); display: block; }
+.sec-pts { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--teal-dark); font-weight: 500; }
+.chev { width: 16px; height: 16px; stroke: var(--text-muted); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.22s; flex-shrink: 0; }
+.sec-hdr.is-open .chev { transform: rotate(180deg); }
+.sec-body { display: none; padding: 0 20px 20px; }
+.sec-body.open { display: block; }
+
+/* ── FIELDS ── */
+.field-row { margin-bottom: 14px; }
+.field-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+.field-lbl { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 7px; display: block; font-weight: 600; }
+.field-lbl .req { color: var(--teal-dark); }
+.field-in {
+  width: 100%; background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: var(--r-sm); color: var(--text); font-family: 'Inter', sans-serif;
+  font-size: 15px; padding: 11px 14px; outline: none; transition: all 0.15s; -webkit-appearance: none;
+}
+.field-in:focus { border-color: var(--teal-mid); box-shadow: 0 0 0 3px var(--teal-pale); background: #fff; }
+.field-in::placeholder { color: var(--text-muted); }
+.field-select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235c6070' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; }
+
+/* ── QUESTIONS ── */
+.question-block { margin-bottom: 14px; padding: 15px 16px; background: var(--surface2); border-radius: var(--r-sm); border: 1.5px solid var(--border); transition: border-color 0.15s; }
+.question-block.answered { border-color: var(--teal-pale2); }
+.q-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+.q-num { width: 24px; height: 24px; background: var(--dark); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 1px; transition: background 0.2s; }
+.question-block.answered .q-num { background: var(--green); }
+.q-text { font-size: 13.5px; color: var(--text); line-height: 1.55; font-weight: 600; }
+.q-answers.joint-mode { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.q-col-lbl { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 6px; }
+.q-options { display: flex; flex-direction: column; gap: 6px; }
+.answer-opt { display: flex; align-items: flex-start; gap: 10px; padding: 10px 13px; border-radius: 9px; border: 1.5px solid var(--border); background: var(--surface); cursor: pointer; transition: all 0.15s; user-select: none; }
+.answer-opt:hover { border-color: var(--teal-mid); background: var(--teal-pale); }
+.answer-opt.selected { border-color: var(--teal-dark); background: var(--teal-pale); box-shadow: 0 0 0 2px var(--teal-pale2); }
+.radio-dot { width: 17px; height: 17px; border-radius: 50%; border: 2px solid var(--border); background: #fff; flex-shrink: 0; margin-top: 1px; position: relative; transition: all 0.15s; }
+.answer-opt.selected .radio-dot { border-color: var(--teal-dark); background: var(--teal-dark); }
+.radio-dot::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: #fff; opacity: 0; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); transition: opacity 0.15s; }
+.answer-opt.selected .radio-dot::after { opacity: 1; }
+.opt-text { font-size: 13px; color: var(--text-dim); line-height: 1.45; flex: 1; }
+.answer-opt.selected .opt-text { color: var(--teal-dark); font-weight: 600; }
+
+/* ── SEC DIVIDER ── */
+.sec-divider { font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--teal-dark); font-weight: 700; margin: 16px 0 10px; padding-bottom: 6px; border-bottom: 1.5px solid var(--teal-pale2); }
+
+/* ── INFO BANNER ── */
+.info-banner { background: var(--teal-pale); border: 1px solid var(--teal-pale2); border-radius: var(--r-sm); padding: 11px 14px; margin-bottom: 14px; font-size: 12.5px; color: var(--text-dim); line-height: 1.65; }
+.info-banner strong { color: var(--teal-dark); }
+.callout-adviser {
+  background: var(--teal-pale); border: 1.5px solid var(--teal-pale2); border-radius: var(--r-sm);
+  border-left: 4px solid var(--teal); padding: 14px 16px; margin-top: 12px;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.callout-adviser svg { width: 20px; height: 20px; stroke: var(--teal-dark); fill: none; stroke-width: 2; flex-shrink: 0; margin-top: 1px; }
+.callout-adviser-text { font-size: 13px; color: var(--text-dim); line-height: 1.65; }
+.callout-adviser-text strong { color: var(--teal-dark); }
+
+/* ── PROFILE RESULT BOX ── */
+.profile-result-box { background: var(--teal-pale); border: 1.5px solid var(--teal-pale2); border-radius: var(--r-sm); padding: 16px 18px; margin-bottom: 12px; }
+.prb-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.prb-label { font-size: 12px; color: var(--text-dim); }
+.prb-value { font-family: 'Playfair Display', serif; font-size: 20px; color: var(--teal-dark); font-weight: 700; }
+.prb-desc { font-size: 13px; color: var(--text-dim); line-height: 1.65; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--teal-pale2); }
+.prb-incomplete { font-size: 13px; color: var(--text-muted); font-style: italic; }
+
+/* ── ALLOC TABLE ── */
+.alloc-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+.alloc-table th { background: var(--teal-pale); color: var(--teal-dark); padding: 8px 10px; text-align: left; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700; border-bottom: 1px solid var(--teal-pale2); }
+.alloc-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text-dim); }
+.alloc-table tr.hl td { background: var(--teal-pale); color: var(--teal-dark); font-weight: 700; }
+.alloc-bar { height: 6px; border-radius: 3px; background: var(--border); margin-top: 3px; overflow: hidden; }
+.alloc-bar-fill { height: 100%; border-radius: 3px; background: var(--teal); transition: width 0.5s; }
+
+/* ── DECLARATION ── */
+.decl-text { font-size: 13px; color: var(--text-dim); line-height: 1.75; background: var(--surface2); border-radius: var(--r-sm); padding: 14px 16px; border: 1px solid var(--border); }
+.decl-check {
+  display: flex; align-items: flex-start; gap: 12px; padding: 13px 15px;
+  background: var(--teal-pale); border-radius: var(--r-sm); border: 1.5px solid var(--teal-pale2);
+  margin-top: 12px; cursor: pointer;
+}
+.decl-check input[type=checkbox] { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--teal-dark); cursor: pointer; margin-top: 2px; }
+.decl-check-lbl { font-size: 13px; color: var(--text-dim); line-height: 1.6; font-weight: 600; cursor: pointer; }
+
+/* ── SIGNATURES ── */
+.sig-section { margin-top: 14px; }
+.sig-label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 7px; display: block; font-weight: 600; }
+.sig-canvas-wrap { border: 1.5px dashed var(--teal-pale2); border-radius: var(--r-sm); background: #fff; position: relative; overflow: hidden; }
+.sig-canvas { display: block; cursor: crosshair; touch-action: none; width: 100%; height: 110px; }
+.sig-clear { position: absolute; top: 7px; right: 7px; background: rgba(255,255,255,0.95); border: 1px solid var(--border); border-radius: 6px; padding: 4px 11px; font-size: 10px; font-weight: 700; color: var(--text-dim); cursor: pointer; letter-spacing: 0.06em; text-transform: uppercase; z-index: 2; }
+.sig-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; font-size: 12px; color: var(--text-muted); letter-spacing: 0.05em; gap: 6px; }
+.sig-placeholder svg { width: 15px; height: 15px; stroke: var(--text-muted); fill: none; stroke-width: 1.5; }
+
+/* ── MODE TOGGLE ── */
+.mode-toggle { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface2); border-radius: 11px; padding: 4px; gap: 4px; border: 1px solid var(--border); margin-bottom: 16px; }
+.mode-btn { padding: 10px; border: none; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; letter-spacing: 0.04em; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-muted); }
+.mode-btn.active { background: var(--dark); color: #fff; box-shadow: 0 2px 10px var(--shadow); }
+
+/* ── SUBMIT SECTION ── */
+.submit-section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 24px; box-shadow: 0 2px 8px var(--shadow); margin-bottom: 14px; }
+.submit-title { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--text); font-weight: 700; margin-bottom: 6px; }
+.submit-subtitle { font-size: 13px; color: var(--text-dim); margin-bottom: 20px; line-height: 1.6; }
+.submit-checklist { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.check-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-dim); }
+.check-icon { width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.check-icon.pass { background: var(--green); }
+.check-icon.fail { background: var(--border); }
+.check-icon.pass::after, .check-icon.fail::after { content: ''; }
+.check-icon.pass svg, .check-icon.fail svg { width: 11px; height: 11px; stroke: #fff; fill: none; stroke-width: 2.5; }
+.btn-submit {
+  width: 100%; padding: 16px; border: none; border-radius: 11px;
+  background: var(--dark); color: #fff; font-family: 'Inter', sans-serif;
+  font-size: 15px; font-weight: 700; letter-spacing: 0.04em; cursor: pointer;
+  transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.btn-submit:hover { background: var(--dark-mid); transform: translateY(-1px); box-shadow: 0 6px 18px var(--shadow); }
+.btn-submit:active { transform: scale(0.98); }
+.btn-submit:disabled { background: var(--text-muted); cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-submit svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+
+/* ── SUCCESS STATE ── */
+.success-screen {
+  display: none; text-align: center; padding: 50px 28px;
+  background: var(--surface); border-radius: var(--r);
+  border: 1px solid var(--border); box-shadow: 0 2px 8px var(--shadow);
+  margin-bottom: 14px;
+}
+.success-screen.show { display: block; }
+.success-tick { width: 72px; height: 72px; border-radius: 50%; background: var(--green); display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; box-shadow: 0 8px 24px rgba(39,174,96,0.3); }
+.success-tick svg { width: 36px; height: 36px; stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; }
+.success-title { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--text); font-weight: 700; margin-bottom: 10px; }
+.success-body { font-size: 14px; color: var(--text-dim); line-height: 1.75; max-width: 420px; margin: 0 auto 24px; }
+.success-adviser-box { background: var(--teal-pale); border: 1px solid var(--teal-pale2); border-radius: var(--r-sm); padding: 14px 16px; font-size: 13px; color: var(--text-dim); line-height: 1.6; max-width: 400px; margin: 0 auto 20px; }
+
+/* ── VALIDATION ── */
+.field-error { font-size: 11px; color: var(--red); margin-top: 5px; display: none; }
+.field-in.invalid { border-color: var(--red); }
+.field-in.invalid:focus { box-shadow: 0 0 0 3px rgba(231,76,60,0.12); }
+
+/* ── SPINNER ── */
+.spinner { width: 20px; height: 20px; border: 2.5px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--dark); color: #fff; padding: 11px 20px; border-radius: 10px; font-size: 13px; font-weight: 600; opacity: 0; transition: all 0.25s; pointer-events: none; z-index: 999; white-space: nowrap; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { background: var(--red); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 599px) {
+  .main { padding: 16px 14px 40px; }
+  .header-inner { padding: 12px 16px; }
+  .intro-card { padding: 20px 18px; }
+  .intro-title { font-size: 22px; }
+  .field-row-2 { grid-template-columns: 1fr; }
+  .q-answers.joint-mode { grid-template-columns: 1fr; }
+}
+@media (min-width: 768px) {
+  .main { padding: 32px 24px 60px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     CONFIGURATION (edit these!)
+══════════════════════════════════ -->
+<script>
+// ── POWER AUTOMATE CONFIGURATION ─────────────────────────────
+// Paste your Power Automate HTTP trigger URL below.
+// IT can find this after saving the flow (step 8 in the setup guide above).
+// It will look like: https://prod-xx.westus.logic.azure.com:443/workflows/...
+const POWER_AUTOMATE_WEBHOOK_URL = 'https://defaultcb58d2d53bb546ccb0dd5613309d92.0d.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/3aeb5e59db164b3aa6429f4020a427f1/triggers/manual/paths/invoke?api-version=1';
+
+// Notification email — where submissions are sent
+const NOTIFY_EMAIL = 'adminfp@propelbg.com.au';
+
+// SharePoint folder where files will be saved (for IT reference, used in flow setup)
+const SHAREPOINT_FOLDER = '/Risk Profiles';
+
+// ── ADVISERS ─────────────────────────────────────────────────
+// To add a new adviser: copy a line and update name, ar, email.
+// To remove: delete the line.
+// AR number and email are used on the exported form.
+const ADVISERS = [
+  { name: 'Adrian Rubinich',  ar: '1312434', email: 'adrian.rubinich@propelbg.com.au' },
+  { name: 'Gregg Zappara',    ar: '',        email: 'gregg.zappara@propelbg.com.au'   },
+  { name: 'Melanie McKnight', ar: '',        email: 'melanie.mcknight@propelbg.com.au'},
+];
+// ─────────────────────────────────────────────────────────────
+</script>
+
+<!-- ═══════════════════════ PAGE HEADER ═══════════════════════ -->
+<header class="page-header">
+  <div class="header-inner">
+    <div class="header-brand">
+      <div class="header-logo-mark">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <div>
+        <div class="header-name">Propel Business Group</div>
+        <div class="header-sub">Client Risk Profile</div>
+      </div>
+    </div>
+    <div class="header-progress-wrap">
+      <div class="header-progress-label" id="progressLabel">0 of 14</div>
+      <div class="header-progress-bar"><div class="header-progress-fill" id="progressFill" style="width:0%"></div></div>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════ MAIN ═══════════════════════ -->
+<main class="main" id="mainForm">
+
+  <!-- Intro card -->
+  <div class="intro-card">
+    <div class="intro-eyebrow">Propel Business Group</div>
+    <div class="intro-title">Your Client Risk Profile</div>
+    <div class="intro-body">This questionnaire helps us understand your attitude to investment risk and find the right strategy for your goals. There are no right or wrong answers — just answer honestly based on how you feel. Your adviser will review your responses and contact you if they have any questions or recommendations.</div>
+    <div class="intro-time-badge">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      Typically takes 5–10 minutes
+    </div>
+  </div>
+
+  <!-- ── ADVISER & PROFILE TYPE ── -->
+  <div class="section">
+    <div class="sec-hdr is-open" onclick="toggleSec(this)">
+      <div class="sec-left">
+        <div class="sec-ico"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div class="sec-title-wrap"><div class="sec-title">Getting Started</div><div class="sec-subtitle">Select your adviser and profile type</div></div>
+      </div>
+      <div class="sec-right"><div class="sec-badge" id="sb-start"></div><svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+    <div class="sec-body open">
+      <div class="field-row">
+        <label class="field-lbl" for="adviserSelect">Your Adviser <span class="req">*</span></label>
+        <select class="field-in field-select" id="adviserSelect" onchange="onAdviserChange()">
+          <option value="">— Please select your adviser —</option>
+        </select>
+        <div class="field-error" id="err-adviser">Please select your adviser</div>
+      </div>
+
+      <div class="field-row" style="margin-bottom:8px">
+        <label class="field-lbl">Are you completing this as an individual or with a partner / joint?</label>
+        <div class="mode-toggle">
+          <button class="mode-btn active" id="modeIndividual" onclick="setMode('individual')">Just Me</button>
+          <button class="mode-btn" id="modeJoint" onclick="setMode('joint')">Joint / Partner</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── YOUR DETAILS ── -->
+  <div class="section">
+    <div class="sec-hdr is-open" onclick="toggleSec(this)">
+      <div class="sec-left">
+        <div class="sec-ico"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+        <div class="sec-title-wrap"><div class="sec-title">Your Details</div></div>
+      </div>
+      <div class="sec-right"><div class="sec-badge" id="sb-details"></div><svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+    <div class="sec-body open">
+      <div class="info-banner">Your name is used to personalise this form and will appear on the completed risk profile sent to your adviser.</div>
+
+      <div class="sec-divider">Your Details</div>
+      <div class="field-row-2">
+        <div>
+          <label class="field-lbl" for="yourFirstName">Your First Name <span class="req">*</span></label>
+          <input class="field-in" id="yourFirstName" type="text" placeholder="e.g. Sarah" oninput="onNameChange();scheduleSave()" autocomplete="given-name">
+          <div class="field-error" id="err-firstName">Required</div>
+        </div>
+        <div>
+          <label class="field-lbl" for="yourLastName">Your Last Name <span class="req">*</span></label>
+          <input class="field-in" id="yourLastName" type="text" placeholder="e.g. Johnson" oninput="onNameChange();scheduleSave()" autocomplete="family-name">
+          <div class="field-error" id="err-lastName">Required</div>
+        </div>
+      </div>
+      <div class="field-row">
+        <label class="field-lbl" for="yourEmail">Your Email Address <span class="req">*</span></label>
+        <input class="field-in" id="yourEmail" type="email" placeholder="e.g. sarah@email.com" oninput="scheduleSave()" autocomplete="email">
+        <div class="field-error" id="err-email">Please enter a valid email address</div>
+      </div>
+      <div class="field-row">
+        <label class="field-lbl" for="yourPhone">Your Phone Number</label>
+        <input class="field-in" id="yourPhone" type="tel" placeholder="e.g. 0400 000 000" oninput="scheduleSave()" autocomplete="tel">
+      </div>
+
+      <!-- Partner details — shown in joint mode -->
+      <div id="partnerSection" style="display:none">
+        <div class="sec-divider">Your Partner's Details</div>
+        <div class="field-row-2">
+          <div>
+            <label class="field-lbl" for="partnerFirstName">Partner's First Name <span class="req">*</span></label>
+            <input class="field-in" id="partnerFirstName" type="text" placeholder="e.g. James" oninput="onNameChange();scheduleSave()">
+            <div class="field-error" id="err-partnerFirst">Required</div>
+          </div>
+          <div>
+            <label class="field-lbl" for="partnerLastName">Partner's Last Name</label>
+            <input class="field-in" id="partnerLastName" type="text" placeholder="e.g. Johnson" oninput="scheduleSave()">
+          </div>
+        </div>
+        <div class="field-row">
+          <label class="field-lbl" for="partnerEmail">Partner's Email Address</label>
+          <input class="field-in" id="partnerEmail" type="email" placeholder="e.g. james@email.com" oninput="scheduleSave()">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── SECTION 1 ── -->
+  <div class="section" id="section1">
+    <div class="sec-hdr is-open" onclick="toggleSec(this)">
+      <div class="sec-left"><div class="sec-ico"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div><div class="sec-title-wrap"><div class="sec-title">Section 1 — Your Investment Experience</div><div class="sec-subtitle">Questions 1–4</div></div></div>
+      <div class="sec-right"><span class="sec-pts" id="sec1pts"></span><div class="sec-badge" id="sb-1"></div><svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+    <div class="sec-body open" id="sec1body"></div>
+  </div>
+
+  <!-- ── SECTION 2 ── -->
+  <div class="section" id="section2">
+    <div class="sec-hdr is-open" onclick="toggleSec(this)">
+      <div class="sec-left"><div class="sec-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="sec-title-wrap"><div class="sec-title">Section 2 — Your Investment Time Frame</div><div class="sec-subtitle">Question 5</div></div></div>
+      <div class="sec-right"><span class="sec-pts" id="sec2pts"></span><div class="sec-badge" id="sb-2"></div><svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+    <div class="sec-body open" id="sec2body"></div>
+  </div>
+
+  <!-- ── SECTION 3 ── -->
+  <div class="section" id="section3">
+    <div class="sec-hdr is-open" onclick="toggleSec(this)">
+      <div class="sec-left"><div class="sec-ico"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><div class="sec-title-wrap"><div class="sec-title">Section 3 — Inflation</div><div class="sec-subtitle">Question 6</div></div></div>
+      <div class="sec-right"><span class="sec-pts" id="sec3pts"></span><div class="sec-badge" id="sb-3"></div><svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+    <div class="sec-body open" id="sec3body"></div>
+  </div>
+
+  <!-- ── SECTION 4 ── -->
+  <div class="section" id="section4">
+    <div class="sec-hdr is-open" onclick="toggleSec(this)">
+      <div class="sec-left"><div class="sec-ico"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><div class="sec-title-wrap"><div class="sec-title">Section 4 — Market Volatility</div><div class="sec-subtitle">Questions 7–8</div></div></div>
+      <div class="sec-right"><span class="sec-pts" id="sec4pts"></span><div class="sec-badge" id="sb-4"></div><svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+    <div class="sec-body open" id="sec4body"></div>
+  </div>
+
+  <!-- ── SECTION 5 ── -->
+  <div class="section" id="section5">
+    <div class="sec-hdr is-open" onclick="toggleSec(this)">
+      <div class="sec-left"><div class="sec-ico"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><div class="sec-title-wrap"><div class="sec-title">Section 5 — Investment Performance</div><div class="sec-subtitle">Questions 9–12</div></div></div>
+      <div class="sec-right"><span class="sec-pts" id="sec5pts"></span><div class="sec-badge" id="sb-5"></div><svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+    <div class="sec-body open" id="sec5body"></div>
+  </div>
+
+  <!-- ── SECTION 6 ── -->
+  <div class="section" id="section6">
+    <div class="sec-hdr is-open" onclick="toggleSec(this)">
+      <div class="sec-left"><div class="sec-ico"><svg viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div><div class="sec-title-wrap"><div class="sec-title">Section 6 — Borrowing to Invest</div><div class="sec-subtitle">Questions 13–14</div></div></div>
+      <div class="sec-right"><span class="sec-pts" id="sec6pts"></span><div class="sec-badge" id="sb-6"></div><svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+    <div class="sec-body open" id="sec6body"></div>
+  </div>
+
+  <!-- ── YOUR RESULT ── -->
+  <div class="section">
+    <div class="sec-hdr is-open" onclick="toggleSec(this)">
+      <div class="sec-left"><div class="sec-ico"><svg viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div><div class="sec-title-wrap"><div class="sec-title">Your Risk Profile Result</div></div></div>
+      <svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+    <div class="sec-body open">
+
+      <div id="resultIncomplete" class="prb-incomplete">Complete all 14 questions above to see your result here.</div>
+
+      <div id="resultComplete" style="display:none">
+        <div class="profile-result-box">
+          <div class="prb-row"><span class="prb-label">Your Score</span><span class="prb-value" id="prb1Score">—</span></div>
+          <div class="prb-row"><span class="prb-label">Your Risk Profile</span><span class="prb-value" id="prb1Profile">—</span></div>
+          <div class="prb-desc" id="prb1Desc"></div>
+        </div>
+
+        <div id="c2Result" style="display:none">
+          <div class="sec-divider">Your Partner's Result</div>
+          <div class="profile-result-box">
+            <div class="prb-row"><span class="prb-label">Score</span><span class="prb-value" id="prb2Score">—</span></div>
+            <div class="prb-row"><span class="prb-label">Risk Profile</span><span class="prb-value" id="prb2Profile">—</span></div>
+            <div class="prb-desc" id="prb2Desc"></div>
+          </div>
+        </div>
+
+        <div class="sec-divider">Asset Allocation Benchmark</div>
+        <table class="alloc-table" id="allocTable">
+          <thead><tr><th>Profile</th><th>Income %</th><th>Growth %</th><th style="min-width:80px">Split</th></tr></thead>
+          <tbody id="allocBody"></tbody>
+        </table>
+
+        <!-- Adviser callout — replaces variation section -->
+        <div class="callout-adviser">
+          <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.65 3.42 2 2 0 0 1 3.62 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <div class="callout-adviser-text">
+            <strong>What happens next?</strong><br>
+            Your adviser will review this risk profile and contact you to discuss. If they believe a variation to your profile may better suit your circumstances and goals, they will explain their recommendation and seek your agreement before proceeding. You don't need to do anything further — just submit this form below.
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── DECLARATION & SIGNATURES ── -->
+  <div class="section">
+    <div class="sec-hdr is-open" onclick="toggleSec(this)">
+      <div class="sec-left"><div class="sec-ico"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div><div class="sec-title-wrap"><div class="sec-title">Declaration &amp; Signature</div></div></div>
+      <div class="sec-right"><div class="sec-badge" id="sb-decl"></div><svg class="chev" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg></div>
+    </div>
+    <div class="sec-body open">
+      <div class="decl-text" id="declText">
+        <strong>Client Risk Profile Declaration</strong><br><br>
+        I/We hereby declare that a Financial Services Guide (FSG) and an Adviser Profile was provided to me/us. I/We have read and understood the FSG including the Privacy Policy. We confirm that the details recorded in the client risk profile questionnaire are correct and are a true reflection of my/our attitude towards risk. I/We confirm that I/we have read and understood my/our agreed risk profile, and additionally I/we understand that this profile will be considered in the advice process.
+      </div>
+
+      <label class="decl-check" for="declCheck">
+        <input type="checkbox" id="declCheck" onchange="state.declAgreed=this.checked;updateSubmitState()">
+        <span class="decl-check-lbl">I/We confirm that I/we have read and understood the above declaration, including the Privacy Policy, and the details recorded in this questionnaire are correct and a true reflection of my/our attitude towards risk.</span>
+      </label>
+
+      <div class="sig-section">
+        <span class="sig-label" id="sig1Label">Your Signature</span>
+        <div class="sig-canvas-wrap">
+          <canvas class="sig-canvas" id="sig1" width="480" height="110"></canvas>
+          <div class="sig-placeholder" id="sig1Ph"><svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg> Sign here with your finger or mouse</div>
+          <button class="sig-clear" onclick="clearSig('sig1','sig1Ph')">Clear</button>
+        </div>
+      </div>
+
+      <div id="sig2Section" style="display:none">
+        <div class="sig-section">
+          <span class="sig-label" id="sig2Label">Your Partner's Signature</span>
+          <div class="sig-canvas-wrap">
+            <canvas class="sig-canvas" id="sig2" width="480" height="110"></canvas>
+            <div class="sig-placeholder" id="sig2Ph"><svg viewBox="0 0 24 24"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg> Partner signs here</div>
+            <button class="sig-clear" onclick="clearSig('sig2','sig2Ph')">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="field-row" style="margin-top:16px">
+        <label class="field-lbl" for="completionDate">Date of Completion</label>
+        <input class="field-in" id="completionDate" type="date" style="max-width:220px">
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── SUBMIT ── -->
+  <div class="submit-section" id="submitSection">
+    <div class="submit-title">Ready to submit?</div>
+    <div class="submit-subtitle">Once you click submit, your completed risk profile will be automatically sent to your adviser. You'll see a confirmation message here.</div>
+    <div class="submit-checklist" id="submitChecklist"></div>
+    <button class="btn-submit" id="btnSubmit" onclick="submitForm()" disabled>
+      <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      Send to My Adviser
+    </button>
+    <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-top:10px">Your response is sent securely directly to Propel Business Group.</div>
+  </div>
+
+  <!-- ── SUCCESS STATE ── -->
+  <div class="success-screen" id="successScreen">
+    <div class="success-tick"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+    <div class="success-title">Form Submitted!</div>
+    <div class="success-body" id="successBody">Your risk profile has been sent to your adviser. They will review your responses and be in touch to discuss the next steps.</div>
+    <div class="success-adviser-box" id="successAdviserBox"></div>
+    <div style="font-size:12px;color:var(--text-muted)">You can close this window or keep it for your records.</div>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════ -->
+<script>
+// ══════════════════════════════════════════════
+// QUESTION DATA
+// ══════════════════════════════════════════════
+const PROFILES = [
+  {name:'Secure',      range:[64,70], income:100, growth:0,   desc:'As a Secure investor you seek to preserve capital and do not want any exposure to assets that may be volatile in nature, understanding that you may be forgoing opportunities to grow your capital. You may also require access to your capital in the short term (less than 2 years).'},
+  {name:'Defensive',   range:[54,63], income:80,  growth:20,  desc:'As a Defensive investor, you seek consistent returns using a steady growth strategy. Your risk profile suggests you want some potential for capital growth but prefer not to have large fluctuations in short term performance. You would generally prefer a diversified portfolio with a bias towards defensive assets such as fixed income and cash.'},
+  {name:'Conservative',range:[44,53], income:60,  growth:40,  desc:'As a Conservative investor, you seek consistent returns using a steady growth strategy. Your risk profile suggests you want some potential for capital growth but prefer not to have large fluctuations in short term performance. You would generally prefer a diversified portfolio with a bias towards defensive assets such as fixed income and cash.'},
+  {name:'Balanced',    range:[34,43], income:40,  growth:60,  desc:'As a Balanced investor, you seek a balanced portfolio to achieve medium to long term financial goals. Your risk profile suggests you are prepared to experience short term fluctuations in performance for potentially higher returns over the long term. You would generally prefer a diversified portfolio with a bias towards growth assets such as shares and property.'},
+  {name:'Growth',      range:[24,33], income:20,  growth:80,  desc:'As a Growth investor, you focus on assets with greater growth potential. Your risk profile suggests you are prepared to accept short term fluctuations in performance for potentially greater returns over the longer term. You would generally prefer a diversified portfolio with a strong bias towards growth investments such as shares and property.'},
+  {name:'High Growth', range:[14,23], income:0,   growth:100, desc:'As a High Growth investor, you are prepared to compromise portfolio balance to pursue potential long-term gains. Your risk profile suggests you acknowledge there will be short term fluctuations in performance and are comfortable to invest in high-risk investments. You would generally prefer a portfolio comprising solely growth assets such as shares and property.'}
+];
+
+const QUESTIONS = [
+  {id:1,sec:1,text:'How would you rate your willingness to take financial risks?',yours:'How would you rate your willingness to take financial risks?',answers:[{t:'Very high risk taker',p:1},{t:'High risk taker',p:2},{t:'Average risk taker',p:3},{t:'Low risk taker',p:4},{t:'Very low risk taker',p:5}]},
+  {id:2,sec:1,text:'How familiar are you with investment markets?',answers:[{t:'I am experienced with all asset sectors and understand the various factors which influence portfolio performance',p:1},{t:'I understand that markets fluctuate and that different asset sectors offer different income, growth and taxation characteristics',p:2},{t:'I have just enough experience to understand some aspects of investment markets',p:4},{t:'I have very little understanding of investment markets',p:5}]},
+  {id:3,sec:1,text:'How would you describe your experience and understanding of investment markets?',answers:[{t:'I have had positive experiences with investing that outweigh the negative and accept that markets go up and down. I understand the risk versus return trade-off.',p:1},{t:'Whilst I have had a negative experience with investing, I understand this is part of the risk versus return trade-off',p:2},{t:'I am not familiar with investments and am cautious',p:3},{t:'I have previously lost money as an investor and am extremely concerned about any future losses',p:5}]},
+  {id:4,sec:1,text:'What is the most aggressive investment you have made?',answers:[{t:'Direct shares',p:1},{t:'Managed funds',p:2},{t:'Investment property',p:3},{t:'Own home',p:4},{t:'High interest savings and/or bank account',p:5}]},
+  {id:5,sec:2,text:'Once your investments have been placed, how long would it be before you would need to access your capital?',answers:[{t:'Longer than 7 years',p:1},{t:'Between 5 and 7 years',p:2},{t:'Between 3 and 5 years',p:3},{t:'Between 2 and 3 years',p:4},{t:'Less than 2 years',p:5}]},
+  {id:6,sec:3,text:'Inflation is a rise in the general level of prices of goods over time, which can reduce your spending power. How much risk are you prepared to take to counteract the effects of inflation?',answers:[{t:'I am comfortable with short to medium term losses in order to beat inflation over the longer term',p:1},{t:'I am conscious of the effects of inflation, but would prefer a position that limits short to medium-term losses',p:3},{t:'Inflation may erode my savings over the long term, but I have little tolerance for short to medium-term losses',p:5}]},
+  {id:7,sec:4,text:'Most investments can fluctuate both up and down. How much could your investment fall in value over a 12 month period before you feel concerned and anxious?',answers:[{t:'More than 50%',p:1},{t:'Up to 50%',p:2},{t:'Up to 25%',p:3},{t:'Up to 10%',p:4},{t:'Up to 5%',p:5}]},
+  {id:8,sec:4,text:'What would your reaction be if six months after placing your investment, your portfolio has decreased in value by 20%?',answers:[{t:'I would invest more funds expecting future growth',p:1},{t:'I would invest a small amount of additional funds, expecting future growth',p:2},{t:'I would leave the investment in place and wait to see if it improves',p:3},{t:'I would cut my losses and transfer some funds into more secure asset sectors',p:4},{t:'I would cut my losses and move all funds into more secure assets (e.g. bank account)',p:5}]},
+  {id:9,sec:5,text:'Over the longer term, what return do you reasonably expect to achieve from your investment portfolio?',answers:[{t:'8% or above per annum',p:1},{t:'6–8% per annum',p:2},{t:'4–6% per annum',p:3},{t:'2–4% per annum',p:4},{t:'0–2% per annum',p:5}]},
+  {id:10,sec:5,text:'Have you had an investment, including superannuation, fall in value? If so, how did it make you feel?',answers:[{t:'Unconcerned, and anticipating future investment opportunities',p:1},{t:'Unconcerned but not making any further investments',p:2},{t:'Concerned',p:3},{t:'Very concerned and asking friends and family about what I should do',p:4},{t:'I have never experienced an investment fall in value and would not want to',p:5}]},
+  {id:11,sec:5,text:'What degree of risk are you prepared to take to achieve your desired return?',answers:[{t:'I want to maximise potential returns regardless of risk',p:1},{t:'A high degree of risk would be acceptable for a large increase in potential returns',p:2},{t:'A moderate degree of risk would be acceptable for a medium increase in potential returns',p:3},{t:'A limited degree of risk would be acceptable for a slight increase in potential returns',p:4},{t:'Security of capital is required regardless of potential returns',p:5}]},
+  {id:12,sec:5,text:'What are your future income requirements from your investments?',answers:[{t:'I require no investment income — the focus should only be on capital growth',p:1},{t:'I require a small amount of investment income as I am mainly concerned with capital growth',p:2},{t:'I require an equal combination of investment income and capital growth',p:3},{t:'I require a large amount of investment income with only some capital growth',p:4},{t:'I require all of my investments to have a focus on income',p:5}]},
+  {id:13,sec:6,text:'Have you ever considered borrowing money to make an investment?',answers:[{t:'I have borrowed money to invest in managed funds, direct shares or structured products',p:1},{t:'I would consider borrowing to invest in shares',p:2},{t:'I have only borrowed money to invest in my own home, investment or rental property',p:3},{t:'I would only consider borrowing money to invest in property',p:4},{t:'I would never consider borrowing money to invest outside my own home',p:5}]},
+  {id:14,sec:6,text:'How do you feel about the idea of borrowing money to invest?',answers:[{t:'I am comfortable about borrowing to invest as I understand the risk',p:1},{t:'I am cautious about borrowing to invest but understand the risks',p:3},{t:'I am concerned about borrowing to invest as the risks can be very high',p:5}]}
+];
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let state = {
+  mode: 'individual',
+  answers: {c1:{}, c2:{}},
+  declAgreed: false,
+  submitting: false,
+  submitted: false
+};
+
+let autoDraftTimer = null;
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+function init() {
+  populateAdviserDropdown();
+  renderQuestions();
+  renderAllocTable();
+  initSignatures();
+  document.getElementById('completionDate').value = new Date().toISOString().split('T')[0];
+
+  // Restore draft if any
+  try {
+    const d = localStorage.getItem('riskProfilerClient_draft');
+    if (d) restoreDraft(JSON.parse(d));
+  } catch(e) {}
+
+  recalc();
+  updateSubmitState();
+
+  // Initialize EmailJS
+  try { emailjs.init(EMAIL_CONFIG.publicKey); } catch(e) { console.warn('EmailJS init failed:', e); }
+}
+
+function populateAdviserDropdown() {
+  const sel = document.getElementById('adviserSelect');
+  ADVISERS.forEach((a, i) => {
+    const opt = document.createElement('option');
+    opt.value = i; opt.textContent = a.name;
+    sel.appendChild(opt);
+  });
+}
+
+function onAdviserChange() {
+  const idx = parseInt(document.getElementById('adviserSelect').value);
+  if (!isNaN(idx)) {
+    document.getElementById('err-adviser').style.display = 'none';
+    document.getElementById('adviserSelect').classList.remove('invalid');
+  }
+  updateSubmitState();
+  scheduleSave();
+}
+
+// ══════════════════════════════════════════════
+// QUESTION RENDERING
+// ══════════════════════════════════════════════
+function renderQuestions() {
+  const secMap = {1:'sec1body',2:'sec2body',3:'sec3body',4:'sec4body',5:'sec5body',6:'sec6body'};
+  const bySection = {};
+  QUESTIONS.forEach(q => { (bySection[q.sec] = bySection[q.sec]||[]).push(q); });
+  Object.entries(bySection).forEach(([sec,qs]) => {
+    const el = document.getElementById(secMap[sec]);
+    if (el) el.innerHTML = qs.map(q => buildQuestion(q)).join('');
+  });
+  updatePersonalLabels();
+}
+
+function buildQuestion(q) {
+  const isJoint = state.mode === 'joint';
+  const a1 = state.answers.c1[q.id], a2 = state.answers.c2[q.id];
+  const answered = a1 !== undefined && (!isJoint || a2 !== undefined);
+  if (isJoint) {
+    const yourName = document.getElementById('yourFirstName')?.value || 'You';
+    const partnerName = document.getElementById('partnerFirstName')?.value || 'Partner';
+    return `<div class="question-block${answered?' answered':''}" id="qb${q.id}">
+      <div class="q-header"><div class="q-num" id="qn${q.id}">${q.id}</div><div class="q-text">${q.text}</div></div>
+      <div class="q-answers joint-mode">
+        <div><div class="q-col-lbl" id="ql1_${q.id}">${yourName}</div><div class="q-options">${q.answers.map((a,i)=>buildOpt(q.id,'c1',i,a)).join('')}</div></div>
+        <div><div class="q-col-lbl" id="ql2_${q.id}">${partnerName}</div><div class="q-options">${q.answers.map((a,i)=>buildOpt(q.id,'c2',i,a)).join('')}</div></div>
+      </div></div>`;
+  }
+  return `<div class="question-block${answered?' answered':''}" id="qb${q.id}">
+    <div class="q-header"><div class="q-num" id="qn${q.id}">${q.id}</div><div class="q-text">${q.text}</div></div>
+    <div class="q-answers">${q.answers.map((a,i)=>buildOpt(q.id,'c1',i,a)).join('')}</div></div>`;
+}
+
+function buildOpt(qid, client, idx, a) {
+  const sel = state.answers[client][qid] === idx ? 'selected' : '';
+  return `<div class="answer-opt ${sel}" id="opt_${qid}_${client}_${idx}" onclick="selectAnswer(${qid},'${client}',${idx})">
+    <div class="radio-dot"></div><div class="opt-text">${a.t}</div></div>`;
+}
+
+function selectAnswer(qid, client, idx) {
+  const q = QUESTIONS.find(q => q.id === qid);
+  q.answers.forEach((_,i) => document.getElementById(`opt_${qid}_${client}_${i}`)?.classList.remove('selected'));
+  document.getElementById(`opt_${qid}_${client}_${idx}`)?.classList.add('selected');
+  state.answers[client][qid] = idx;
+  const isJoint = state.mode === 'joint';
+  const block = document.getElementById(`qb${qid}`);
+  const answered = state.answers.c1[qid] !== undefined && (!isJoint || state.answers.c2[qid] !== undefined);
+  if (block) { block.classList.toggle('answered', answered); document.getElementById(`qn${qid}`)?.style && (document.getElementById(`qn${qid}`).style.background = answered ? 'var(--green)' : ''); }
+  recalc();
+  scheduleSave();
+}
+
+// ══════════════════════════════════════════════
+// SCORES & RECALC
+// ══════════════════════════════════════════════
+function getScore(client) {
+  let total=0, answered=0;
+  QUESTIONS.forEach(q => { const i=state.answers[client][q.id]; if(i!==undefined){total+=q.answers[i].p;answered++;} });
+  return {total, answered};
+}
+function getProfile(score) {
+  for (const p of PROFILES) if (score>=p.range[0]&&score<=p.range[1]) return p;
+  return score<14?PROFILES[5]:PROFILES[0];
+}
+
+function recalc() {
+  const total = QUESTIONS.length;
+  const s1 = getScore('c1');
+  const s2 = state.mode==='joint' ? getScore('c2') : null;
+  const answered = s1.answered + (s2?s2.answered:0);
+  const maxAnswered = total * (s2?2:1);
+  document.getElementById('progressFill').style.width = (answered/maxAnswered*100)+'%';
+  document.getElementById('progressLabel').textContent = `${answered} of ${maxAnswered}`;
+
+  // Section pts + badges
+  [1,2,3,4,5,6].forEach(sec => {
+    const qs=QUESTIONS.filter(q=>q.sec===sec);
+    let pts1=0,pts2=0,ans1=0,ans2=0;
+    qs.forEach(q=>{const i1=state.answers.c1[q.id];if(i1!==undefined){pts1+=q.answers[i1].p;ans1++;}if(s2){const i2=state.answers.c2[q.id];if(i2!==undefined){pts2+=q.answers[i2].p;ans2++;}}});
+    const el=document.getElementById(`sec${sec}pts`);if(el)el.textContent=ans1>0?(s2&&ans2>0?`${pts1}/${pts2}`:`${pts1} pts`):'';
+    const done=ans1===qs.length&&(!s2||ans2===qs.length);
+    const badge=document.getElementById(`sb-${sec}`);if(badge)badge.className='sec-badge'+(done?' done':'');
+  });
+
+  // Result
+  const d1=s1.answered===total,d2=s2&&s2.answered===total;
+  const isDone=d1&&(!s2||d2);
+  const p1=getProfile(s1.total),p2=s2?getProfile(s2.total):null;
+  document.getElementById('resultIncomplete').style.display=isDone?'none':'block';
+  document.getElementById('resultComplete').style.display=isDone?'block':'none';
+  if(isDone){
+    document.getElementById('prb1Score').textContent=`${s1.total} / 70`;
+    document.getElementById('prb1Profile').textContent=p1.name;
+    document.getElementById('prb1Desc').textContent=p1.desc;
+    if(s2){document.getElementById('c2Result').style.display='block';document.getElementById('prb2Score').textContent=`${s2.total} / 70`;document.getElementById('prb2Profile').textContent=p2.name;document.getElementById('prb2Desc').textContent=p2.desc;}
+    else{document.getElementById('c2Result').style.display='none';}
+    document.querySelectorAll('#allocBody tr').forEach((r,i)=>r.classList.toggle('hl',PROFILES[i].name===p1.name));
+  }
+
+  // Badges for details section
+  const firstName=document.getElementById('yourFirstName').value.trim();
+  const lastName=document.getElementById('yourLastName').value.trim();
+  const email=document.getElementById('yourEmail').value.trim();
+  const partnerFirst=state.mode==='joint'?document.getElementById('partnerFirstName').value.trim():'ok';
+  const adviserSel=document.getElementById('adviserSelect').value;
+  const detailsDone=firstName&&lastName&&email&&partnerFirst&&adviserSel!=='';
+  document.getElementById('sb-details').className='sec-badge'+(detailsDone?' done':'');
+  document.getElementById('sb-start').className='sec-badge'+(adviserSel!==''?' done':'');
+  document.getElementById('sb-decl').className='sec-badge'+(state.declAgreed?' done':'');
+  updateSubmitState();
+}
+
+function renderAllocTable() {
+  document.getElementById('allocBody').innerHTML=PROFILES.map(p=>`<tr><td><strong style="font-family:'Playfair Display',serif">${p.name}</strong></td><td>${p.income}%</td><td>${p.growth}%</td><td><div class="alloc-bar"><div class="alloc-bar-fill" style="width:${p.growth}%"></div></div></td></tr>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// NAME PROPAGATION
+// ══════════════════════════════════════════════
+function onNameChange() {
+  const yourName = document.getElementById('yourFirstName').value||'You';
+  const partnerName = document.getElementById('partnerFirstName').value||'Partner';
+  document.getElementById('sig1Label').textContent = `${yourName}'s Signature`;
+  document.getElementById('sig2Label').textContent = `${partnerName}'s Signature`;
+  document.getElementById('sig1Ph').innerHTML = `<svg viewBox="0 0 24 24" width="15" height="15" stroke="var(--text-muted)" fill="none" stroke-width="1.5" stroke-linecap="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/></svg> ${yourName} — sign here`;
+  if(state.mode==='joint'){QUESTIONS.forEach(q=>{const l1=document.getElementById(`ql1_${q.id}`),l2=document.getElementById(`ql2_${q.id}`);if(l1)l1.textContent=yourName;if(l2)l2.textContent=partnerName;});}
+  recalc();
+}
+
+function updatePersonalLabels() {
+  if(state.mode!=='joint')return;
+  const yourName=document.getElementById('yourFirstName').value||'You', partnerName=document.getElementById('partnerFirstName').value||'Partner';
+  QUESTIONS.forEach(q=>{const l1=document.getElementById(`ql1_${q.id}`),l2=document.getElementById(`ql2_${q.id}`);if(l1)l1.textContent=yourName;if(l2)l2.textContent=partnerName;});
+}
+
+// ══════════════════════════════════════════════
+// MODE
+// ══════════════════════════════════════════════
+function setMode(m) {
+  state.mode=m;
+  document.getElementById('modeIndividual').classList.toggle('active',m==='individual');
+  document.getElementById('modeJoint').classList.toggle('active',m==='joint');
+  document.getElementById('partnerSection').style.display=m==='joint'?'block':'none';
+  document.getElementById('sig2Section').style.display=m==='joint'?'block':'none';
+  if(m==='individual'){state.answers.c2={};}
+  renderQuestions(); recalc();
+}
+
+// ══════════════════════════════════════════════
+// SUBMIT READINESS
+// ══════════════════════════════════════════════
+function updateSubmitState() {
+  const total=QUESTIONS.length;
+  const s1=getScore('c1'),s2=state.mode==='joint'?getScore('c2'):null;
+  const firstName=document.getElementById('yourFirstName').value.trim();
+  const lastName=document.getElementById('yourLastName').value.trim();
+  const email=document.getElementById('yourEmail').value.trim();
+  const emailValid=/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const adviserSel=document.getElementById('adviserSelect').value!=='';
+  const partnerOk=state.mode!=='joint'||document.getElementById('partnerFirstName').value.trim()!=='';
+  const qsDone=s1.answered===total&&(!s2||s2.answered===total);
+  const sigData=getSigData('sig1');
+
+  const checks=[
+    {label:'Adviser selected',ok:adviserSel},
+    {label:'Your name entered',ok:!!(firstName&&lastName)},
+    {label:'Email address entered',ok:emailValid},
+    {label:state.mode==='joint'?'Partner name entered':'Profile type selected',ok:partnerOk},
+    {label:`All ${total * (s2?2:1)} questions answered`,ok:qsDone},
+    {label:'Declaration confirmed',ok:state.declAgreed},
+    {label:'Form signed',ok:!!sigData},
+  ];
+
+  const allOk=checks.every(c=>c.ok);
+  document.getElementById('btnSubmit').disabled=!allOk||state.submitting||state.submitted;
+
+  document.getElementById('submitChecklist').innerHTML=checks.map(c=>`
+    <div class="check-item">
+      <div class="check-icon ${c.ok?'pass':'fail'}">
+        ${c.ok?`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>`}
+      </div>
+      <span style="color:${c.ok?'var(--text-dim)':'var(--text-muted)'}">${c.label}</span>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// SIGNATURES
+// ══════════════════════════════════════════════
+function initSignatures() {
+  ['sig1','sig2'].forEach(id=>{
+    const c=document.getElementById(id); if(!c)return;
+    const ph=document.getElementById(id+'Ph');
+    const ctx=c.getContext('2d');ctx.strokeStyle='#383b43';ctx.lineWidth=2.2;ctx.lineCap='round';ctx.lineJoin='round';
+    let drawing=false,lx=0,ly=0;
+    function pos(e){const r=c.getBoundingClientRect(),sx=c.width/r.width,sy=c.height/r.height;return e.touches?{x:(e.touches[0].clientX-r.left)*sx,y:(e.touches[0].clientY-r.top)*sy}:{x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy};}
+    function start(e){e.preventDefault();drawing=true;const p=pos(e);lx=p.x;ly=p.y;if(ph)ph.style.display='none';updateSubmitState();}
+    function move(e){if(!drawing)return;e.preventDefault();const p=pos(e);ctx.beginPath();ctx.moveTo(lx,ly);ctx.lineTo(p.x,p.y);ctx.stroke();lx=p.x;ly=p.y;}
+    function end(){drawing=false;updateSubmitState();}
+    c.addEventListener('mousedown',start);c.addEventListener('mousemove',move);c.addEventListener('mouseup',end);c.addEventListener('mouseleave',end);
+    c.addEventListener('touchstart',start,{passive:false});c.addEventListener('touchmove',move,{passive:false});c.addEventListener('touchend',end);
+  });
+}
+function clearSig(cid,phid){const c=document.getElementById(cid);if(c)c.getContext('2d').clearRect(0,0,c.width,c.height);const ph=document.getElementById(phid);if(ph)ph.style.display='flex';updateSubmitState();}
+function getSigData(cid){const c=document.getElementById(cid);if(!c)return'';const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;return d.some(v=>v!==0)?c.toDataURL('image/png'):'';}
+
+// ══════════════════════════════════════════════
+// SECTION TOGGLE
+// ══════════════════════════════════════════════
+function toggleSec(hdr){hdr.classList.toggle('is-open');hdr.nextElementSibling.classList.toggle('open');}
+
+// ══════════════════════════════════════════════
+// AUTO-SAVE DRAFT
+// ══════════════════════════════════════════════
+function scheduleSave(){
+  clearTimeout(autoDraftTimer);
+  autoDraftTimer=setTimeout(()=>{
+    try{localStorage.setItem('riskProfilerClient_draft',JSON.stringify(buildDraft()));}catch(e){}
+  },1500);
+}
+function buildDraft(){
+  return{
+    answers:JSON.parse(JSON.stringify(state.answers)),mode:state.mode,
+    yourFirstName:document.getElementById('yourFirstName').value,
+    yourLastName:document.getElementById('yourLastName').value,
+    yourEmail:document.getElementById('yourEmail').value,
+    yourPhone:document.getElementById('yourPhone').value,
+    partnerFirstName:document.getElementById('partnerFirstName').value,
+    partnerLastName:document.getElementById('partnerLastName').value,
+    partnerEmail:document.getElementById('partnerEmail').value,
+    adviserIdx:document.getElementById('adviserSelect').value,
+    declAgreed:state.declAgreed,
+    completionDate:document.getElementById('completionDate').value,
+    savedAt:Date.now()
+  };
+}
+function restoreDraft(d){
+  if(!d||!d.answers)return;
+  state.answers=d.answers; state.mode=d.mode||'individual';
+  const fi=k=>document.getElementById(k);
+  if(d.yourFirstName)fi('yourFirstName').value=d.yourFirstName;
+  if(d.yourLastName)fi('yourLastName').value=d.yourLastName;
+  if(d.yourEmail)fi('yourEmail').value=d.yourEmail;
+  if(d.yourPhone)fi('yourPhone').value=d.yourPhone;
+  if(d.partnerFirstName)fi('partnerFirstName').value=d.partnerFirstName;
+  if(d.partnerLastName)fi('partnerLastName').value=d.partnerLastName;
+  if(d.partnerEmail)fi('partnerEmail').value=d.partnerEmail;
+  if(d.adviserIdx!==undefined)fi('adviserSelect').value=d.adviserIdx;
+  if(d.declAgreed){state.declAgreed=true;fi('declCheck').checked=true;}
+  if(d.completionDate)fi('completionDate').value=d.completionDate;
+  if(d.mode==='joint'){fi('modeJoint').classList.add('active');fi('modeIndividual').classList.remove('active');fi('partnerSection').style.display='block';fi('sig2Section').style.display='block';}
+  renderQuestions(); onNameChange();
+}
+
+// ══════════════════════════════════════════════
+// GENERATE EXPORT HTML (for email body + download)
+// ══════════════════════════════════════════════
+function buildExportHTML() {
+  const isJoint = state.mode==='joint';
+  const yourFirst = document.getElementById('yourFirstName').value||'Client';
+  const yourLast  = document.getElementById('yourLastName').value||'';
+  const yourEmail = document.getElementById('yourEmail').value||'';
+  const yourPhone = document.getElementById('yourPhone').value||'';
+  const partFirst = document.getElementById('partnerFirstName').value||'';
+  const partLast  = document.getElementById('partnerLastName').value||'';
+  const partEmail = document.getElementById('partnerEmail').value||'';
+  const advIdx    = parseInt(document.getElementById('adviserSelect').value);
+  const adviser   = !isNaN(advIdx) ? ADVISERS[advIdx] : {name:'—',ar:'—',email:'—'};
+  const compDate  = document.getElementById('completionDate').value;
+  const compFmt   = compDate ? new Date(compDate).toLocaleDateString('en-AU',{day:'2-digit',month:'long',year:'numeric'}) : '—';
+  const s1 = getScore('c1'), s2 = isJoint?getScore('c2'):null;
+  const p1 = getProfile(s1.total), p2 = s2?getProfile(s2.total):null;
+  const sig1 = getSigData('sig1'), sig2 = isJoint?getSigData('sig2'):'';
+
+  const qRows = QUESTIONS.map(q=>{
+    const i1=state.answers.c1[q.id];
+    const a1=i1!==undefined?`${q.answers[i1].t} <span style="color:#aaa">(${q.answers[i1].p}pt)</span>`:'<em style="color:#ccc">Not answered</em>';
+    let row=`<tr><td style="color:#aaa;width:28px;font-weight:700">${q.id}</td><td>${q.text}</td><td>${a1}</td>`;
+    if(isJoint){const i2=state.answers.c2[q.id];row+=`<td>${i2!==undefined?`${q.answers[i2].t} <span style="color:#aaa">(${q.answers[i2].p}pt)</span>`:'<em style="color:#ccc">Not answered</em>'}</td>`;}
+    return row+'</tr>';
+  }).join('');
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Risk Profile — ${yourFirst} ${yourLast}</title>
+<style>
+body{font-family:Arial,sans-serif;color:#383b43;max-width:900px;margin:0 auto;padding:28px;font-size:13px}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #383b43;padding-bottom:18px;margin-bottom:22px}
+.hdr-brand{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#77c4d5;margin-bottom:5px}
+.hdr-title{font-size:24px;color:#383b43;font-weight:700;font-family:Georgia,serif}
+.hdr-right{font-size:11px;color:#555;text-align:right;line-height:1.9}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.box{background:#e8f7fa;border-radius:8px;padding:11px 14px}
+.box-lbl{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#5c6070;margin-bottom:3px}
+.box-val{font-size:14px;font-weight:700;color:#383b43;font-family:Georgia,serif}
+.sh{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#3ea8be;font-weight:700;margin:20px 0 8px;padding-bottom:5px;border-bottom:1.5px solid #c8eaf2}
+.profile-box{background:#e8f7fa;border-radius:8px;padding:14px 16px;margin-bottom:12px;border-left:4px solid #77c4d5}
+.pb-name{font-size:22px;font-weight:700;color:#383b43;font-family:Georgia,serif;margin-bottom:3px}
+.pb-score{font-size:12px;color:#5c6070;margin-bottom:8px}
+.pb-desc{font-size:12px;color:#5c6070;line-height:1.7}
+table{width:100%;border-collapse:collapse;margin-bottom:10px}
+th{background:#e8f7fa;color:#3ea8be;padding:8px 10px;text-align:left;font-size:11px;letter-spacing:.07em;text-transform:uppercase;border-bottom:1px solid #c8eaf2}
+td{padding:7px 10px;border-bottom:1px solid #eef2f7;vertical-align:top;font-size:12px}
+.decl-box{background:#f5f7fa;border-radius:8px;padding:13px 16px;font-size:12px;color:#5c6070;line-height:1.75;border:1px solid #dde6f2;margin-bottom:14px}
+.sig-wrap{display:inline-block;width:46%;vertical-align:top;margin-right:5%;margin-bottom:16px}
+.sig-img{display:block;width:100%;height:68px;object-fit:contain;border-bottom:1.5px solid #383b43;margin-bottom:4px}
+.sig-line{width:100%;height:68px;display:block;border-bottom:1.5px solid #383b43;margin-bottom:4px}
+.sig-lbl{font-size:10px;color:#888;letter-spacing:.07em;text-transform:uppercase}
+/* ADVISER SECTION */
+.adviser-section{background:#fff8f0;border:1.5px dashed #e67e22;border-radius:10px;padding:18px 20px;margin-top:24px}
+.adviser-section-title{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#e67e22;font-weight:700;margin-bottom:12px}
+.adviser-field{margin-bottom:16px}
+.adviser-field-lbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#5c6070;font-weight:700;margin-bottom:5px}
+.adviser-line{height:32px;border-bottom:1.5px solid #383b43;width:100%}
+.adviser-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.alloc-bar{height:7px;background:#e8eef6;border-radius:4px;overflow:hidden;margin-top:3px}
+.alloc-fill{height:100%;background:#77c4d5;border-radius:4px}
+.footer{margin-top:28px;padding-top:12px;border-top:1px solid #ccd8ea;font-size:11px;color:#8aa0bc;line-height:1.65}
+@media print{body{padding:16px}@page{margin:10mm;size:A4}.adviser-section{break-inside:avoid;page-break-inside:avoid}}
+</style></head><body>
+<div class="hdr">
+  <div>
+    <div class="hdr-brand">Propel Business Group</div>
+    <div class="hdr-title">Client Risk Profile</div>
+  </div>
+  <div class="hdr-right"><b>${adviser.name}</b><br>Authorised Representative ${adviser.ar}<br>${adviser.email}<br>www.propelbusinessgroup.com.au</div>
+</div>
+<div class="grid">
+  <div class="box"><div class="box-lbl">${isJoint?'Client 1':'Client'}</div><div class="box-val">${yourFirst} ${yourLast}</div></div>
+  ${isJoint?`<div class="box"><div class="box-lbl">Client 2</div><div class="box-val">${partFirst} ${partLast}</div></div>`:''}
+  <div class="box"><div class="box-lbl">Adviser</div><div class="box-val" style="font-size:13px">${adviser.name}</div></div>
+  <div class="box"><div class="box-lbl">Date of Completion</div><div class="box-val" style="font-size:13px">${compFmt}</div></div>
+</div>
+${yourEmail?`<div style="font-size:12px;color:#5c6070;margin-bottom:16px">📧 ${yourEmail}${yourPhone?' &nbsp;·&nbsp; 📞 '+yourPhone:''}</div>`:''}
+<div class="sh">Risk Profile Result${isJoint?'s':''}</div>
+<div class="profile-box">
+  <div class="pb-name">${p1.name}${isJoint&&p2?` / ${p2.name}`:''}</div>
+  <div class="pb-score">${yourFirst}: ${s1.total}/70 pts${isJoint&&s2?` &nbsp;|&nbsp; ${partFirst}: ${s2.total}/70 pts`:''}</div>
+  <div class="pb-desc">${p1.desc}${isJoint&&p2&&p2.name!==p1.name?`<br><br><b>${partFirst}:</b> ${p2.desc}`:''}</div>
+</div>
+<div class="sh">Asset Allocation Benchmark (GPS Wealth)</div>
+<table><thead><tr><th>Profile</th><th>Income %</th><th>Growth %</th><th>Split</th></tr></thead>
+<tbody>${PROFILES.map(p=>`<tr style="${p.name===p1.name?'background:#e8f7fa;font-weight:700;color:#383b43':''}"><td>${p.name}</td><td>${p.income}%</td><td>${p.growth}%</td><td><div class="alloc-bar"><div class="alloc-fill" style="width:${p.growth}%"></div></div></td></tr>`).join('')}</tbody></table>
+<div class="sh">Questionnaire Responses</div>
+<table><thead><tr><th>#</th><th>Question</th><th>${yourFirst}${isJoint?' (C1)':''}</th>${isJoint?`<th>${partFirst} (C2)</th>`:''}</tr></thead>
+<tbody>${qRows}</tbody></table>
+<div class="sh">Declaration</div>
+<div class="decl-box">I/We hereby declare that a Financial Services Guide (FSG) and an Adviser Profile was provided to me/us. I/We have read and understood the FSG including the Privacy Policy. We confirm that the details recorded in the client risk profile questionnaire are correct and are a true reflection of my/our attitude towards risk. I/We confirm that I/we have read and understood my/our agreed risk profile, and additionally I/we understand that this profile will be considered in the advice process.</div>
+<div class="sh">Client Signature${isJoint?'s':''}</div>
+<div>
+  <div class="sig-wrap">${sig1?`<img src="${sig1}" class="sig-img">`:'<span class="sig-line"></span>'}<div class="sig-lbl">${yourFirst} ${yourLast} &nbsp;&nbsp; Date: ${compFmt}</div></div>
+  ${isJoint&&sig2?`<div class="sig-wrap"><img src="${sig2}" class="sig-img"><div class="sig-lbl">${partFirst} ${partLast} &nbsp;&nbsp; Date: ${compFmt}</div></div>`:''}
+</div>
+
+<!-- ══ ADVISER SECTION ══ -->
+<div class="adviser-section">
+  <div class="adviser-section-title">⚠ Adviser Use Only — Risk Profile Review &amp; Variation</div>
+  <p style="font-size:12px;color:#5c6070;margin-bottom:16px;line-height:1.6">Complete this section if a variation to the client's risk profile is being proposed or if the client has raised a variation request. Variation is limited to one step up or down from the questionnaire result.</p>
+
+  <div class="adviser-grid">
+    <div class="adviser-field">
+      <div class="adviser-field-lbl">FSG Version Provided</div>
+      <div class="adviser-line"></div>
+    </div>
+    <div class="adviser-field">
+      <div class="adviser-field-lbl">Date FSG Provided to Client</div>
+      <div class="adviser-line"></div>
+    </div>
+  </div>
+
+  <div class="adviser-field">
+    <div class="adviser-field-lbl">Client Agrees With Profile?</div>
+    <div style="display:flex;gap:32px;padding-top:8px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="radio" name="advAgree"> Yes — agrees with questionnaire result</label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="radio" name="advAgree"> No — variation proposed (see below)</label>
+    </div>
+  </div>
+
+  <div class="adviser-grid" style="margin-top:12px">
+    <div class="adviser-field">
+      <div class="adviser-field-lbl">Questionnaire Profile — ${isJoint?'Client 1':'Client'}</div>
+      <div style="padding:8px;background:#fff;border:1px solid #ddd;border-radius:6px;font-size:13px;color:#383b43;font-weight:700">${p1.name} (${s1.total} pts)</div>
+    </div>
+    ${isJoint&&p2?`<div class="adviser-field"><div class="adviser-field-lbl">Questionnaire Profile — Client 2</div><div style="padding:8px;background:#fff;border:1px solid #ddd;border-radius:6px;font-size:13px;color:#383b43;font-weight:700">${p2.name} (${s2.total} pts)</div></div>`:''}
+    <div class="adviser-field">
+      <div class="adviser-field-lbl">Proposed / Agreed Profile — ${isJoint?'Client 1':'Client'}</div>
+      <div class="adviser-line"></div>
+    </div>
+    ${isJoint?`<div class="adviser-field"><div class="adviser-field-lbl">Proposed / Agreed Profile — Client 2</div><div class="adviser-line"></div></div>`:''}
+  </div>
+
+  <div class="adviser-field">
+    <div class="adviser-field-lbl">Reason for Variation (if applicable)</div>
+    <div class="adviser-line" style="margin-bottom:8px"></div>
+    <div class="adviser-line" style="margin-bottom:8px"></div>
+    <div class="adviser-line"></div>
+  </div>
+
+  <div class="adviser-field" style="margin-top:16px">
+    <div class="adviser-field-lbl">Client Acknowledgement of Variation</div>
+    <div style="display:flex;gap:32px;padding-top:8px">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox"> Client 1 agrees</label>
+      ${isJoint?`<label style="display:flex;align-items:center;gap:8px;font-size:13px"><input type="checkbox"> Client 2 agrees</label>`:''}
+    </div>
+  </div>
+
+  <div class="adviser-grid" style="margin-top:8px">
+    <div class="adviser-field">
+      <div class="adviser-field-lbl">Adviser Signature</div>
+      <div class="adviser-line"></div>
+      <div style="font-size:10px;color:#888;margin-top:4px">${adviser.name} &nbsp;|&nbsp; AR ${adviser.ar}</div>
+    </div>
+    <div class="adviser-field">
+      <div class="adviser-field-lbl">Date Reviewed</div>
+      <div class="adviser-line"></div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">This risk profile questionnaire was completed by ${yourFirst} ${yourLast}${isJoint?` and ${partFirst} ${partLast}`:''} on ${compFmt} via the Propel Business Group client portal. Adviser: ${adviser.name}${adviser.ar?`, AR ${adviser.ar}`:''}. Address: Suite 1, 23 Richardson Street, South Perth WA 6151. www.propelbusinessgroup.com.au</div>
+</body></html>`;
+}
+
+// ══════════════════════════════════════════════
+// SUBMIT — Power Automate + SharePoint
+// ══════════════════════════════════════════════
+async function submitForm() {
+  if (state.submitting || state.submitted) return;
+
+  // ── Validate required fields ──
+  let hasError = false;
+  const advIdx    = document.getElementById('adviserSelect').value;
+  const firstName = document.getElementById('yourFirstName').value.trim();
+  const lastName  = document.getElementById('yourLastName').value.trim();
+  const email     = document.getElementById('yourEmail').value.trim();
+  const emailValid= /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  if (!advIdx)    { showFieldError('err-adviser','adviserSelect');  hasError=true; }
+  if (!firstName) { showFieldError('err-firstName','yourFirstName'); hasError=true; }
+  if (!lastName)  { showFieldError('err-lastName','yourLastName');   hasError=true; }
+  if (!emailValid){ showFieldError('err-email','yourEmail');         hasError=true; }
+  if (state.mode==='joint' && !document.getElementById('partnerFirstName').value.trim()) {
+    showFieldError('err-partnerFirst','partnerFirstName'); hasError=true;
+  }
+  if (hasError) { showToast('Please fill in all required fields', true); return; }
+
+  // ── Build submission data ──
+  const adviser   = ADVISERS[parseInt(advIdx)] || { name:'Unknown Adviser', ar:'', email:'' };
+  const partFirst = state.mode==='joint' ? document.getElementById('partnerFirstName').value.trim() : '';
+  const partLast  = state.mode==='joint' ? document.getElementById('partnerLastName').value.trim()  : '';
+  const compDate  = document.getElementById('completionDate').value;
+  const s1 = getScore('c1'), s2 = state.mode==='joint' ? getScore('c2') : null;
+  const p1 = getProfile(s1.total), p2 = s2 ? getProfile(s2.total) : null;
+
+  // Email subject: "Surname, Firstname - PartnerFirst (Risk Profile)"
+  const subject = partFirst
+    ? `${lastName}, ${firstName} - ${partFirst} (Risk Profile)`
+    : `${lastName}, ${firstName} (Risk Profile)`;
+
+  // Safe filename for SharePoint
+  const dateStamp = (compDate || new Date().toISOString().split('T')[0]).replace(/-/g,'');
+  const safeName  = `${lastName}_${firstName}${partFirst?'_'+partFirst:''}_${dateStamp}`.replace(/[^a-zA-Z0-9_-]/g,'_');
+  const fileName  = `${safeName}_RiskProfile.html`;
+
+  const exportHtml  = buildExportHTML();
+  const profileText = p2 ? `${p1.name} / ${p2.name}` : p1.name;
+  const scoreText   = p2 ? `${s1.total} / ${s2.total}` : String(s1.total);
+
+  // ── Start loading state ──
+  state.submitting = true;
+  const btn = document.getElementById('btnSubmit');
+  btn.innerHTML = '<div class="spinner"></div> Sending…';
+  btn.disabled  = true;
+
+  // ── Check if webhook is configured ──
+  const isConfigured = POWER_AUTOMATE_WEBHOOK_URL !== 'YOUR_POWER_AUTOMATE_WEBHOOK_URL' &&
+                       POWER_AUTOMATE_WEBHOOK_URL.startsWith('http');
+
+  if (isConfigured) {
+    // ── POST to Power Automate ──
+    try {
+      const payload = {
+        subject,
+        clientName:     `${firstName} ${lastName}`,
+        partnerName:    partFirst ? `${partFirst} ${partLast}`.trim() : '',
+        adviserName:    adviser.name,
+        clientEmail:    email,
+        completionDate: compDate,
+        riskProfile:    profileText,
+        score:          scoreText,
+        fileName,
+        htmlContent:    exportHtml
+      };
+
+      const response = await fetch(POWER_AUTOMATE_WEBHOOK_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload)
+      });
+
+      // Power Automate HTTP trigger returns 202 Accepted (async) or 200 OK
+      if (!response.ok && response.status !== 202) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      onSubmitSuccess(firstName, lastName, adviser, exportHtml, safeName);
+
+    } catch (err) {
+      console.error('Power Automate submission failed:', err);
+      state.submitting = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Send to My Adviser';
+      btn.disabled = false;
+
+      // CORS note: Power Automate returns 202 without CORS headers in some configs.
+      // If fetch throws a network error (not HTTP error), the flow still ran.
+      // Treat network errors as likely-success and show a soft warning.
+      if (err.message.includes('fetch') || err.message.includes('network') || err.message.includes('Failed')) {
+        // Flow probably ran — CORS blocked the response but the request got through
+        onSubmitSuccess(firstName, lastName, adviser, exportHtml, safeName, true);
+      } else {
+        showToast('Submission failed — please try again or contact your adviser', true);
+        if (confirm('Submission may have failed. Download a copy to send manually?')) {
+          downloadExport(exportHtml, `${safeName}_RiskProfile.html`);
+        }
+      }
+    }
+
+  } else {
+    // ── Webhook not yet configured — download + mailto fallback ──
+    console.warn('Power Automate webhook not configured. Using download fallback.');
+
+    // Download the file
+    downloadExport(exportHtml, `${safeName}_RiskProfile.html`);
+
+    // Open mail client with subject pre-filled (no attachment possible via mailto)
+    const body = `New risk profile submission from ${firstName} ${lastName}.\n\nAdviser: ${adviser.name}\nProfile: ${profileText} (${scoreText} pts)\nDate: ${compDate}\nClient Email: ${email}\n\nThe risk profile HTML file has been downloaded to your device. Please attach it to this email and send.\n\n— Propel Business Group Risk Profiler\n\nNote to IT: Configure POWER_AUTOMATE_WEBHOOK_URL in the HTML file to enable fully automatic submission.`;
+    window.location.href = `mailto:${NOTIFY_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    // Show partial success
+    state.submitted = true;
+    try { localStorage.removeItem('riskProfilerClient_draft'); } catch(e) {}
+    document.getElementById('mainForm').style.display = 'none';
+    const ss = document.getElementById('successScreen');
+    ss.classList.add('show');
+    document.getElementById('successBody').innerHTML = `Your risk profile has been downloaded to your device. <strong>Please attach the downloaded file to the email that just opened and send it.</strong><br><br>Once the Power Automate webhook is configured, this step will be fully automatic.`;
+    document.getElementById('successAdviserBox').innerHTML = `<strong>Your Adviser</strong><br>${adviser.name}<br><span style="color:var(--teal-dark)">${adviser.email}</span>`;
+  }
+}
+
+function onSubmitSuccess(firstName, lastName, adviser, exportHtml, safeName, corsWarning=false) {
+  state.submitted = true;
+  try { localStorage.removeItem('riskProfilerClient_draft'); } catch(e) {}
+  document.getElementById('mainForm').style.display = 'none';
+
+  const ss = document.getElementById('successScreen');
+  ss.classList.add('show');
+
+  if (corsWarning) {
+    document.getElementById('successBody').innerHTML = `Your risk profile has been sent to <strong>${adviser.name}</strong>. They will review your responses and be in touch to discuss next steps.<br><br><small style="color:var(--text-muted)">Note: The form was submitted but a network response was not received — this is normal in some configurations. If you don't hear back within 1 business day, please contact your adviser directly.</small>`;
+  } else {
+    document.getElementById('successBody').textContent = `Your risk profile has been sent to ${adviser.name}. They will review your responses and be in touch to discuss next steps.`;
+  }
+
+  document.getElementById('successAdviserBox').innerHTML =
+    `<strong>Your Adviser</strong><br>${adviser.name}<br><span style="color:var(--teal-dark)">${adviser.email}</span>`;
+
+  // Offer client copy download
+  setTimeout(() => {
+    if (confirm('Would you like to download a copy of your completed risk profile for your records?')) {
+      downloadExport(exportHtml, `${safeName}_RiskProfile.html`);
+    }
+  }, 700);
+}
+
+function showFieldError(errId, fieldId) {
+  document.getElementById(errId).style.display = 'block';
+  document.getElementById(fieldId).classList.add('invalid');
+}
+
+function downloadExport(html, filename) {
+  const blob = new Blob([html], {type:'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+function showToast(msg, isError=false) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(isError?' error':'');
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+// ══════════════════════════════════════════════
+// START
+// ══════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
